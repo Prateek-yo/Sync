@@ -1,7 +1,7 @@
 import React from 'react'
 import { Route, Routes } from 'react-router-dom'
 import HomePage from './pages/HomePage'
-import LoginPage from './pages/loginPage'
+import LoginPage from './pages/LoginPage'
 import ProfilePage from './pages/ProfilePage'
 import {Toaster} from "react-hot-toast"
 

@@ -1,133 +1,183 @@
 import React, { useState } from 'react'
 import assets from '../assets/assets'
+import toast from 'react-hot-toast'
+import { useNavigate } from 'react-router-dom'
+import axios from 'axios'
 
 const LoginPage = () => {
 
+  const navigate = useNavigate()
   const [currState, setCurrState] = useState("Sign up")
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [bio, setBio] = useState("")
   const [isDataSubmitted, setIsDataSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const onSubmitHandler = (event) => {
+  const onSubmitHandler = async (event) => {
     event.preventDefault();
+
     if (currState === 'Sign up' && !isDataSubmitted) {
       setIsDataSubmitted(true)
       return;
     }
+
+    setLoading(true);
+
+    try {
+      const endpoint = currState === 'Sign up' ? '/signup' : '/login';
+      const payload = currState === 'Sign up'
+        ? { fullName, email, password, bio }
+        : { email, password };
+
+      const response = await axios.post(`/api/user${endpoint}`, payload);
+
+      const data = response.data;
+
+      if (data.success) {
+        toast.success(data.message);
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('userData', JSON.stringify(data.userData));
+        navigate('/');
+      } else {
+        toast.error(data.message || 'Something went wrong');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Failed to connect to server');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
-    <div className='min-h-screen bg-cover bg-center flex items-center 
-      justify-center gap-8 sm:justify-evenly max-sm:flex-col backdrop-blur-2xl'
-    >
-      <img
-        src={assets.logo_big}
-        alt=""
-        className='w-[min(30vw,250px)]'
-      />
-
-      <form onSubmit={onSubmitHandler} className='border-2 bg-white/8 text-white border-gray-500 
-        p-6 flex flex-col gap-6 rounded-lg shadow-lg'>
-
-        <h2 className='font-medium text-2xl flex justify-between items-center'>
-          {currState}
-          {isDataSubmitted && (
-            <img 
-              onClick={() => setIsDataSubmitted(false)} 
-              src={assets.arrow_icon} 
-              alt="" 
-              className='w-5 cursor-pointer' 
-            />
-          )}
-        </h2>
-
-        {currState === "Sign up" && !isDataSubmitted && (
-          <input
-            onChange={(e) => setFullName(e.target.value)}
-            value={fullName}
-            type="text"
-            className='p-2 border border-gray-500 rounded-md focus:outline-none'
-            placeholder="Full Name"
-            required
+    <div className='gradient-main min-h-screen flex items-center justify-center p-4'>
+      <div className='w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-8 items-center'>
+        {/* Left side - Logo and branding */}
+        <div className='flex flex-col items-center gap-6 text-white fade-in'>
+          <img
+            src={assets.logo_big}
+            alt="Logo"
+            className='w-[min(40vw,300px)] drop-shadow-2xl'
           />
-        )}
+          <h1 className='text-4xl font-bold text-center'>Welcome to Chat App</h1>
+          <p className='text-slate-300 text-center max-w-md'>
+            Connect with friends and family through seamless, real-time messaging
+          </p>
+        </div>
 
-        {!isDataSubmitted && (
-          <>
-            <input
-              onChange={(e) => setEmail(e.target.value)}
-              value={email}
-              type="email"
-              placeholder="Email Address"
-              required
-              className='p-2 border border-gray-500 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500'
-            />
-
-            <input
-              onChange={(e) => setPassword(e.target.value)}
-              value={password}
-              type="password"
-              placeholder="Password"
-              required
-              className='p-2 border border-gray-500 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500'
-            />
-          </>
-        )}
-
-        {currState === "Sign up" && isDataSubmitted && (
-          <textarea
-            onChange={(e) => setBio(e.target.value)}
-            value={bio}
-            rows={4}
-            className='p-2 border border-gray-500 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500'
-            placeholder='provide a short bio...'
-            required
-          ></textarea>
-        )}
-
-        <button 
-          type='submit' 
-          className='py-3 bg-gradient-to-r from-purple-400 to-violet-600 text-white rounded-md cursor-pointer'
+        {/* Right side - Login/Signup form */}
+        <form
+          onSubmit={onSubmitHandler}
+          className='glass-strong p-8 rounded-3xl shadow-2xl w-full max-w-md mx-auto fade-in'
         >
-          {currState === "Sign up" ? "Create Accound" : "Login Now"}
-        </button>
-
-        <div className='flex items-center gap-2 text-sm text-gray-500'>
-          <input type="checkbox" />
-          <p>Agree to the terms of use & privacy policy.</p>
-        </div>
-
-        <div className='flex flex-col gap-2'>
-          {currState === "Sign up" ? (
-            <p className='text-sm text-gray-600'>
-              Already have an account? 
-              <span 
-                onClick={() => {
-                  setCurrState("Login"); 
-                  setIsDataSubmitted(false)
-                }} 
-                className='font-medium text-violet-500 cursor-pointer'
+          <div className='flex justify-between items-center mb-6'>
+            <h2 className='font-semibold text-3xl text-white'>
+              {currState}
+            </h2>
+            {isDataSubmitted && (
+              <button
+                type="button"
+                onClick={() => setIsDataSubmitted(false)}
+                className='p-2 hover:bg-white/10 rounded-full transition-all'
               >
-                Login here
-              </span>
-            </p>
-          ) : (
-            <p className='text-sm text-gray-600'>
-              Create an account 
-              <span 
-                onClick={() => setCurrState("Sign up")} 
-                className='font-medium text-violet-500 cursor-pointer'
-              >
-                Click here
-              </span>
-            </p>
-          )}
-        </div>
+                <img
+                  src={assets.arrow_icon}
+                  alt="back"
+                  className='w-5'
+                />
+              </button>
+            )}
+          </div>
 
-      </form>
+          <div className='flex flex-col gap-4'>
+            {currState === "Sign up" && !isDataSubmitted && (
+              <input
+                onChange={(e) => setFullName(e.target.value)}
+                value={fullName}
+                type="text"
+                className='modern-input'
+                placeholder="Full Name"
+                required
+              />
+            )}
 
+            {!isDataSubmitted && (
+              <>
+                <input
+                  onChange={(e) => setEmail(e.target.value)}
+                  value={email}
+                  type="email"
+                  placeholder="Email Address"
+                  required
+                  className='modern-input'
+                />
+
+                <input
+                  onChange={(e) => setPassword(e.target.value)}
+                  value={password}
+                  type="password"
+                  placeholder="Password"
+                  required
+                  className='modern-input'
+                />
+              </>
+            )}
+
+            {currState === "Sign up" && isDataSubmitted && (
+              <textarea
+                onChange={(e) => setBio(e.target.value)}
+                value={bio}
+                rows={4}
+                className='modern-input resize-none'
+                placeholder='Tell us about yourself...'
+                required
+              ></textarea>
+            )}
+
+            <button
+              type='submit'
+              disabled={loading}
+              className='modern-button w-full py-3 text-base font-semibold mt-2'
+            >
+              {loading ? 'Please wait...' : (currState === "Sign up" ? "Create Account" : "Login Now")}
+            </button>
+
+            <div className='flex items-center gap-2 text-sm text-slate-300'>
+              <input type="checkbox" className='w-4 h-4 accent-violet-500' />
+              <p>Agree to the terms of use & privacy policy</p>
+            </div>
+
+            <div className='mt-4 text-center'>
+              {currState === "Sign up" ? (
+                <p className='text-sm text-slate-300'>
+                  Already have an account?{' '}
+                  <span
+                    onClick={() => {
+                      setCurrState("Login");
+                      setIsDataSubmitted(false)
+                    }}
+                    className='font-semibold text-violet-400 cursor-pointer hover:text-violet-300 transition-colors'
+                  >
+                    Login here
+                  </span>
+                </p>
+              ) : (
+                <p className='text-sm text-slate-300'>
+                  Create an account{' '}
+                  <span
+                    onClick={() => setCurrState("Sign up")}
+                    className='font-semibold text-violet-400 cursor-pointer hover:text-violet-300 transition-colors'
+                  >
+                    Click here
+                  </span>
+                </p>
+              )}
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }

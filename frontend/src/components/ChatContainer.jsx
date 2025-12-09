@@ -1,108 +1,406 @@
-import React, { useEffect, useRef } from 'react'
-import assets, { messagesDummyData } from '../assets/assets'
-import { formatMessageTime } from '../lib/utilis'
+import React, { useEffect, useRef, useState } from 'react'
+import assets from '../assets/assets'
+import { formatMessageTime, getMessages, sendMessage, editMessage, deleteMessage } from '../lib/utilis'
+import toast from 'react-hot-toast'
 
-const ChatContainer = ({ selectedUser, setSelectedUser }) => {
+const ChatContainer = ({ selectedUser, setSelectedUser, messages, setMessages, socket }) => {
   const scrollEnd = useRef(null)
+  const [text, setText] = useState('')
+  const [image, setImage] = useState(null)
+  const [imagePreview, setImagePreview] = useState(null)
+  const [sending, setSending] = useState(false)
+  const [editingId, setEditingId] = useState(null)
+  const [editText, setEditText] = useState('')
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteMessageId, setDeleteMessageId] = useState(null)
+  const [hoveredMessageId, setHoveredMessageId] = useState(null)
+  const currentUserId = JSON.parse(localStorage.getItem('userData'))?._id
 
-  // Scroll 
+  // Fetch messages when selectedUser changes
+  useEffect(() => {
+    const fetchMessages = async () => {
+      if (!selectedUser?._id) {
+        setMessages([])
+        return
+      }
+
+      try {
+        const response = await getMessages(selectedUser._id)
+        if (response.success) {
+          setMessages(response.messages || [])
+        } else {
+          toast.error(response.message || 'Failed to load messages')
+        }
+      } catch (error) {
+        console.error('Error fetching messages:', error)
+        toast.error('Failed to load messages')
+      }
+    }
+
+    fetchMessages()
+  }, [selectedUser, setMessages])
+
+  // Listen for new messages via socket
+  useEffect(() => {
+    if (!socket) return
+
+    const handleNewMessage = (newMessage) => {
+      if (
+        selectedUser &&
+        (newMessage.senderId === selectedUser._id || newMessage.receiverId === selectedUser._id)
+      ) {
+        setMessages((prev) => [...prev, newMessage])
+      }
+    }
+
+    const handleMessageEdited = (editedMessage) => {
+      setMessages((prev) =>
+        prev.map((msg) => (msg._id === editedMessage._id ? editedMessage : msg))
+      )
+    }
+
+    const handleMessageDeleted = ({ messageId }) => {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg._id === messageId ? { ...msg, deleted: true, text: null, image: null } : msg
+        )
+      )
+    }
+
+    socket.on('newMessage', handleNewMessage)
+    socket.on('messageEdited', handleMessageEdited)
+    socket.on('messageDeleted', handleMessageDeleted)
+
+    return () => {
+      socket.off('newMessage', handleNewMessage)
+      socket.off('messageEdited', handleMessageEdited)
+      socket.off('messageDeleted', handleMessageDeleted)
+    }
+  }, [socket, selectedUser, setMessages])
+
+  // Auto-scroll to bottom on new messages
   useEffect(() => {
     if (scrollEnd.current) {
-      scrollEnd.current.scrollIntoView({ behavior: "smooth" })
+      scrollEnd.current.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [messagesDummyData])
+  }, [messages])
+
+  // Handle image selection
+  const handleImageChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImage(reader.result)
+        setImagePreview(reader.result)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  // Handle send message
+  const handleSendMessage = async () => {
+    if (!text.trim() && !image) return
+    if (!selectedUser?._id) return
+
+    setSending(true)
+    try {
+      const response = await sendMessage(selectedUser._id, text, image)
+      if (response.success) {
+        setMessages((prev) => [...prev, response.newMessage])
+        setText('')
+        setImage(null)
+        setImagePreview(null)
+      } else {
+        toast.error(response.message || 'Failed to send message')
+      }
+    } catch (error) {
+      console.error('Error sending message:', error)
+      toast.error('Failed to send message')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  // Handle edit message
+  const handleEditMessage = async (messageId) => {
+    if (!editText.trim()) return
+
+    try {
+      const response = await editMessage(messageId, editText)
+      if (response.success) {
+        setMessages((prev) =>
+          prev.map((msg) => (msg._id === messageId ? response.message : msg))
+        )
+        setEditingId(null)
+        setEditText('')
+        toast.success('Message updated')
+      } else {
+        toast.error(response.message || 'Failed to edit message')
+      }
+    } catch (error) {
+      console.error('Error editing message:', error)
+      toast.error('Failed to edit message')
+    }
+  }
+
+  // Handle delete message
+  const handleDeleteMessage = async () => {
+    if (!deleteMessageId) return
+
+    try {
+      const response = await deleteMessage(deleteMessageId)
+      if (response.success) {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg._id === deleteMessageId ? { ...msg, deleted: true, text: null, image: null } : msg
+          )
+        )
+        toast.success('Message deleted')
+      } else {
+        toast.error(response.message || 'Failed to delete message')
+      }
+    } catch (error) {
+      console.error('Error deleting message:', error)
+      toast.error('Failed to delete message')
+    } finally {
+      setShowDeleteModal(false)
+      setDeleteMessageId(null)
+    }
+  }
+
+  const isOnline = selectedUser && socket?.connected
 
   return selectedUser ? (
-    <div className='h-full overflow-y-scroll overflow-x-hidden relative backdrop-blur-lg'>
-
+    <div className='h-full overflow-y-scroll overflow-x-hidden relative'>
       {/* Header */}
-      <div className='flex items-center gap-3 py-3 mx-4 border-b border-stone-500'>
-        <img src={assets.profile_martin} alt="" className='w-8 rounded-full' />
+      <div className='glass flex items-center gap-3 py-4 px-4 mx-3 mt-3 mb-2 rounded-xl'>
+        <img
+          src={selectedUser.profilePic || assets.avatar_icon}
+          alt={selectedUser.fullName}
+          className='w-10 h-10 rounded-full object-cover border-2 border-violet-500/50'
+        />
 
-        <p className='flex-1 text-lg text-white flex items-center gap-2'>
-          Martin Johnson
-          <span className='w-2 h-2 rounded-full bg-green-500'></span>
+        <p className='flex-1 text-lg text-white font-medium flex items-center gap-2'>
+          {selectedUser.fullName}
+          {isOnline && <span className='w-2.5 h-2.5 rounded-full bg-green-500 pulse-dot'></span>}
         </p>
 
         <img
           onClick={() => setSelectedUser(null)}
           src={assets.arrow_icon}
-          alt=""
-          className='md:hidden max-w-7'
+          alt="close"
+          className='md:hidden max-w-7 cursor-pointer hover:opacity-70 transition-opacity'
         />
 
-        <img src={assets.help_icon} alt="" className='max-md:hidden max-w-5' />
+        <img src={assets.help_icon} alt="help" className='max-md:hidden max-w-5 opacity-70' />
       </div>
 
       {/* Messages Section */}
       <div className='flex flex-col h-[calc(100%-120px)] overflow-y-scroll p-3 pb-6'>
-        
-        {messagesDummyData.map((msg, index) => (
-          <div
-            key={index}
-            className={`flex items-end gap-2 justify-end ${
-              msg.senderId !== '680f50e4f10f3cd28382ecf9' ? 'flex-row-reverse' : ''
-            }`}
-          >
-            {msg.image ? (
-              <img
-                src={msg.image}
-                alt=""
-                className='max-w-[230px] border border-gray-700 rounded-lg overflow-hidden mb-8'
-              />
-            ) : (
-              <p
-                className={`p-2 max-w-[200px] md:text-sm font-light rounded-lg mb-8 break-all bg-violet-500/30 text-white ${
-                  msg.senderId === '680f50e4f10f3cd28382ecf9'
-                    ? 'rounded-br-none'
-                    : 'rounded-bl-none'
-                }`}
-              >
-                {msg.text}
-              </p>
-            )}
+        {messages.length > 0 ? (
+          messages
+            .filter((msg) => !msg.deleted) // Hide deleted messages completely
+            .map((msg) => {
+              const isSentByMe = msg.senderId === currentUserId
 
-            {/* Avatar + Time */}
-            <div className="text-center text-xs">
-              <img
-                src={
-                  msg.senderId === '680f50e4f10f3cd28382ecf9'
-                    ? assets.avatar_icon
-                    : assets.profile_martin
-                }
-                alt=""
-                className='w-7 rounded-full'
-              />
-              <p className='text-gray-500'>
-                {formatMessageTime(msg.createdAt)}
-              </p>
-            </div>
+              return (
+                <div
+                  key={msg._id}
+                  className={`flex items-end gap-2 mb-8 ${isSentByMe ? 'justify-end' : 'justify-start'}`}
+                  onMouseEnter={() => setHoveredMessageId(msg._id)}
+                  onMouseLeave={() => setHoveredMessageId(null)}
+                >
+                  {/* Message content with relative positioning for buttons */}
+                  <div className='relative'>
+                    {editingId === msg._id ? (
+                      <div className='flex flex-col gap-2 fade-in'>
+                        <input
+                          type="text"
+                          value={editText}
+                          onChange={(e) => setEditText(e.target.value)}
+                          className='modern-input'
+                          autoFocus
+                        />
+                        <div className='flex gap-2'>
+                          <button
+                            onClick={() => handleEditMessage(msg._id)}
+                            className='modern-button text-sm'
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingId(null)
+                              setEditText('')
+                            }}
+                            className='glass px-3 py-1 text-white rounded-lg hover:bg-white/10 text-sm transition-all'
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : msg.image ? (
+                      <div className='flex flex-col gap-1 fade-in'>
+                        <img
+                          src={msg.image}
+                          alt="message"
+                          className='max-w-[230px] rounded-xl shadow-lg'
+                        />
+                        {msg.text && (
+                          <p className={isSentByMe ? 'message-sent' : 'message-received'}>
+                            {msg.text}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className='fade-in'>
+                        <p className={`md:text-sm break-all ${isSentByMe ? 'message-sent max-w-[250px]' : 'message-received max-w-[250px]'}`}>
+                          {msg.text}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Options menu - positioned absolutely, shown on hover */}
+                    {isSentByMe && !editingId && hoveredMessageId === msg._id && (
+                      <div className='absolute -top-8 right-0 flex gap-1 glass rounded-lg p-1.5 shadow-lg z-10 fade-in'>
+                        <button
+                          onClick={() => {
+                            setEditingId(msg._id)
+                            setEditText(msg.text || '')
+                          }}
+                          className='p-1.5 hover:bg-white/10 rounded text-sm transition-all'
+                          title='Edit'
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={() => {
+                            setDeleteMessageId(msg._id)
+                            setShowDeleteModal(true)
+                          }}
+                          className='p-1.5 hover:bg-white/10 rounded text-sm transition-all'
+                          title='Delete'
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Avatar + Time */}
+                  <div className="text-center text-xs opacity-70">
+                    <img
+                      src={
+                        isSentByMe
+                          ? JSON.parse(localStorage.getItem('userData'))?.profilePic || assets.avatar_icon
+                          : selectedUser.profilePic || assets.avatar_icon
+                      }
+                      alt="avatar"
+                      className='w-7 rounded-full object-cover'
+                    />
+                    <p className='text-gray-500'>{formatMessageTime(msg.createdAt)}</p>
+                  </div>
+                </div>
+              )
+            })
+        ) : (
+          <div className='flex items-center justify-center h-full text-gray-400'>
+            <p>No messages yet. Start the conversation!</p>
           </div>
-        ))}
+        )}
 
         <div ref={scrollEnd}></div>
       </div>
 
-      {/* Bottom area */}
-      <div className='absolute bottom-0 left-0 right-0 flex items-center gap-3 p-3'>
-        <div className='flex-1 flex items-center bg-gray-100/12 px-3 rounded-full'>
+      {/* Image Preview */}
+      {imagePreview && (
+        <div className='absolute bottom-20 left-4 glass rounded-xl p-3 fade-in'>
+          <div className='relative'>
+            <img src={imagePreview} alt="preview" className='max-w-[150px] rounded-lg' />
+            <button
+              onClick={() => {
+                setImage(null)
+                setImagePreview(null)
+              }}
+              className='absolute -top-2 -right-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-full w-6 h-6 flex items-center justify-center hover:shadow-lg transition-all'
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom input area */}
+      <div className='absolute bottom-0 left-0 right-0 flex items-center gap-3 p-4 mx-3 mb-3'>
+        <div className='flex-1 flex items-center glass px-4 rounded-full hover-glow'>
           <input
             type="text"
             placeholder='Send a message'
-            className='flex-1 text-sm p-3 border-none rounded-lg outline-none text-white placeholder-gray-400'
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' && !sending) {
+                handleSendMessage()
+              }
+            }}
+            disabled={sending}
+            className='flex-1 text-sm py-3 border-none outline-none text-white placeholder-slate-400 bg-transparent'
           />
-          <input type="file" id="image" accept='image/png, image/jpeg' hidden />
+          <input
+            type="file"
+            id="image"
+            accept='image/png, image/jpeg'
+            onChange={handleImageChange}
+            hidden
+          />
           <label htmlFor="image">
-            <img src={assets.gallery_icon} alt="" className="w-5 mr-2 cursor-pointer" />
+            <img src={assets.gallery_icon} alt="upload" className="w-5 cursor-pointer hover:opacity-70 transition-opacity" />
           </label>
         </div>
 
-        <img src={assets.send_button} alt="" className="w-7 cursor-pointer" />
+        <button
+          onClick={handleSendMessage}
+          disabled={sending}
+          className={`modern-button w-10 h-10 rounded-full flex items-center justify-center p-0 ${sending ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+        >
+          <img src={assets.send_button} alt="send" className='w-5' />
+        </button>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className='fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 fade-in'>
+          <div className='glass-strong rounded-2xl p-6 max-w-md w-full mx-4'>
+            <h3 className='text-white text-xl font-semibold mb-4'>Delete Message</h3>
+            <p className='text-slate-300 mb-6'>
+              Are you sure you want to delete this message? This action cannot be undone.
+            </p>
+            <div className='flex gap-3 justify-end'>
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false)
+                  setDeleteMessageId(null)
+                }}
+                className='glass px-4 py-2 text-white rounded-lg hover:bg-white/10 transition-all'
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteMessage}
+                className='bg-gradient-to-r from-red-600 to-red-700 px-4 py-2 text-white rounded-lg hover:shadow-lg hover:shadow-red-500/50 transition-all'
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   ) : (
     <div className='flex flex-col items-center justify-center gap-2 text-gray-500 bg-white/10 max-md:hidden'>
-      <img src={assets.logo_icon} className='max-w-16' alt="" />
+      <img src={assets.logo_icon} className='max-w-16' alt="logo" />
       <p className='text-lg font-medium text-white'>Chat anytime, anywhere</p>
     </div>
   )

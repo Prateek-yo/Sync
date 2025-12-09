@@ -1,16 +1,56 @@
-# React + Vite
+ChatSync – Real-Time Chat Application
+Project Proposal
+1. Project Overview
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+ChatSync is a full-stack real-time chat application designed to provide secure, fast, and modern messaging features. The project includes a React.js frontend, a Node.js backend, a MySQL database managed with Prisma ORM, and JWT-based authentication. Socket.io will be used to implement real-time communication between users.
 
-Currently, two official plugins are available:
+2. Problem Statement
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Users require a platform that supports fast, secure, and reliable real-time messaging. Existing solutions are often complex or lack a clean and minimal interface. ChatSync aims to deliver a simple yet efficient real-time chat experience with strong authentication and a responsive UI.
 
-## React Compiler
+3. Objectives
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Build a fast and responsive real-time chat interface
 
-## Expanding the ESLint configuration
+Implement secure user authentication
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Enable real-time message delivery using Socket.io
+
+Store user data and chat history in a database
+
+Provide a scalable and maintainable code structure
+
+4. Features
+
+User signup and login using JWT
+
+Secure password hashing using bcrypt
+
+Real-time messaging via Socket.io
+
+User list and chat list interface
+
+Prisma ORM for database operations
+
+Responsive and clean UI
+
+5. Tech Stack
+
+Frontend: React, Axios, CSS
+Backend: Node.js, Express.js
+Database: MySQL with Prisma ORM
+Authentication: JWT and bcrypt
+Real-Time Communication: Socket.io
+Deployment: Netlify for frontend, Render or Railway for backend server
+
+6. System Architecture
+
+User signs up and the backend stores user data using Prisma
+
+User logs in and the backend returns a JWT token
+
+The token is stored in localStorage and is used for protected routes
+
+Socket.io manages real-time messaging between users
+
+Messages are stored in the database through Prisma

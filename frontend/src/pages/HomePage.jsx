@@ -1,33 +1,64 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useContext } from 'react'
 import ChatContainer from '../components/chatContainer'
 import RightSidebar from '../components/RightSidebar'
 import SideBar from '../components/SideBar.jsx'
+import { AuthContext } from '../../context/AuthContext'
+import { getUsersForSidebar } from '../lib/utilis'
+import toast from 'react-hot-toast'
 
 
 const HomePage = () => {
-  const [selectedUser, setSelectedUser] = useState(false)
+  const [selectedUser, setSelectedUser] = useState(null)
+  const [users, setUsers] = useState([])
+  const [unseenMessages, setUnseenMessages] = useState({})
+  const [messages, setMessages] = useState([])
+
+  const { socket, onlineUsers } = useContext(AuthContext)
+
+  // Fetch users on mount
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await getUsersForSidebar()
+        if (response.success) {
+          setUsers(response.users)
+          setUnseenMessages(response.unseenMessages || {})
+        } else {
+          toast.error(response.message || 'Failed to fetch users')
+        }
+      } catch (error) {
+        console.error('Error fetching users:', error)
+        toast.error('Failed to load users')
+      }
+    }
+
+    fetchUsers()
+  }, [])
 
   return (
-    <div className='border w-full h-screen sm:px-[15%] sm:py-[5%]'>
-      <div
-        className={`backdrop-blur-xl border-2 border-gray-600 rounded-2xl 
-        overflow-hidden h-[100%] grid grid-cols-1 relative 
-        ${
-          selectedUser
-            ? 'md:grid-cols-[1fr_2fr_1fr] xl:grid-cols-[1fr_2.3fr_1fr]'
-            : 'md:grid-cols-2'
-        }`}
-      >
-        <SideBar selectedUser={selectedUser} setSelectedUser={setSelectedUser} />
+    <div className='gradient-main min-h-screen w-full flex items-center justify-center sm:p-8'>
+      <div className='w-full h-screen sm:h-[90vh] sm:max-w-7xl glass-strong rounded-3xl overflow-hidden 
+                      grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr] lg:grid-cols-[1fr_2.3fr_1fr]'>
+        <SideBar
+          selectedUser={selectedUser}
+          setSelectedUser={setSelectedUser}
+          users={users}
+          onlineUsers={onlineUsers}
+          unseenMessages={unseenMessages}
+        />
 
         <ChatContainer
           selectedUser={selectedUser}
           setSelectedUser={setSelectedUser}
+          messages={messages}
+          setMessages={setMessages}
+          socket={socket}
         />
 
         <RightSidebar
           selectedUser={selectedUser}
           setSelectedUser={setSelectedUser}
+          messages={messages}
         />
       </div>
     </div>
