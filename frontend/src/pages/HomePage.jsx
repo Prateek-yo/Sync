@@ -36,31 +36,29 @@ const HomePage = () => {
   }, [])
 
   return (
-    <div className='gradient-main min-h-screen w-full flex items-center justify-center sm:p-8'>
-      <div className='w-full h-screen sm:h-[90vh] sm:max-w-7xl glass-strong rounded-3xl overflow-hidden 
-                      grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr] lg:grid-cols-[1fr_2.3fr_1fr]'>
-        <SideBar
-          selectedUser={selectedUser}
-          setSelectedUser={setSelectedUser}
-          users={users}
-          onlineUsers={onlineUsers}
-          unseenMessages={unseenMessages}
-        />
+    <div className='w-full h-screen glass-strong overflow-hidden 
+                    grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr] lg:grid-cols-[1fr_2.3fr_1fr]'>
+      <SideBar
+        selectedUser={selectedUser}
+        setSelectedUser={setSelectedUser}
+        users={users}
+        onlineUsers={onlineUsers}
+        unseenMessages={unseenMessages}
+      />
 
-        <ChatContainer
-          selectedUser={selectedUser}
-          setSelectedUser={setSelectedUser}
-          messages={messages}
-          setMessages={setMessages}
-          socket={socket}
-        />
+      <ChatContainer
+        selectedUser={selectedUser}
+        setSelectedUser={setSelectedUser}
+        messages={messages}
+        setMessages={setMessages}
+        socket={socket}
+      />
 
-        <RightSidebar
-          selectedUser={selectedUser}
-          setSelectedUser={setSelectedUser}
-          messages={messages}
-        />
-      </div>
+      <RightSidebar
+        selectedUser={selectedUser}
+        setSelectedUser={setSelectedUser}
+        messages={messages}
+      />
     </div>
   )
 }

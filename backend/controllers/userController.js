@@ -4,8 +4,10 @@ import bcrypt from "bcryptjs";
 import cloudinary from "../lib/cloudinary.js";
 
 export const signup = async (req, res) => {
-    const { fullName, email, password, bio } = req.body;
+    const { fullName, email, password, bio, avatar } = req.body;
 
+    // Default emoji avatars pool
+    const defaultAvatars = ['😀', '😎', '🥳', '😊', '🤗', '🐶', '🐱', '🦊', '🐼', '🐨', '🦁', '🐯', '🐸', '🐙', '🦄', '🌟', '⚡', '🎨', '🎭', '🎪'];
 
     try {
         if (!fullName || !email || !password || !bio) {
@@ -20,8 +22,11 @@ export const signup = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
+        // Assign random default avatar if none provided
+        const userAvatar = avatar || defaultAvatars[Math.floor(Math.random() * defaultAvatars.length)];
+
         const newUser = await User.create({
-            fullName, email, password: hashedPassword, bio
+            fullName, email, password: hashedPassword, bio, avatar: userAvatar
         })
 
         const token = generateToken(newUser._id)
@@ -114,5 +119,37 @@ export const deleteAccount = async (req, res) => {
     } catch (error) {
         console.log(error.message);
         res.json({ success: false, message: "Error occurred while deleting account" });
+    }
+}
+
+// Update avatar controller
+export const updateAvatar = async (req, res) => {
+    try {
+        const { avatar } = req.body;
+        const userId = req.user._id;
+
+        console.log('[updateAvatar] Received avatar:', JSON.stringify(avatar, null, 2));
+        console.log('[updateAvatar] Avatar type:', typeof avatar);
+        console.log('[updateAvatar] User ID:', userId);
+
+        if (!avatar) {
+            console.log('[updateAvatar] Avatar is missing');
+            return res.json({ success: false, message: "Avatar is required" });
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { avatar },
+            { new: true }
+        ).select('-password');
+
+        console.log('[updateAvatar] User updated successfully:', updatedUser.fullName);
+        console.log('[updateAvatar] New avatar:', JSON.stringify(updatedUser.avatar, null, 2));
+
+        res.json({ success: true, user: updatedUser, message: "Avatar updated successfully" });
+    } catch (error) {
+        console.error('[updateAvatar] ERROR:', error.message);
+        console.error('[updateAvatar] Full error:', error);
+        res.json({ success: false, message: error.message || "Error occurred while updating avatar" });
     }
 }

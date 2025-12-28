@@ -2,6 +2,9 @@ import React, { useEffect, useRef, useState } from 'react'
 import assets from '../assets/assets'
 import { formatMessageTime, getMessages, sendMessage, editMessage, deleteMessage } from '../lib/utilis'
 import toast from 'react-hot-toast'
+import EmojiPicker from 'emoji-picker-react'
+import TypingIndicator from './TypingIndicator'
+import ProfessionalAvatar from './ProfessionalAvatar'
 
 const ChatContainer = ({ selectedUser, setSelectedUser, messages, setMessages, socket }) => {
   const scrollEnd = useRef(null)
@@ -14,6 +17,8 @@ const ChatContainer = ({ selectedUser, setSelectedUser, messages, setMessages, s
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteMessageId, setDeleteMessageId] = useState(null)
   const [hoveredMessageId, setHoveredMessageId] = useState(null)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [isTyping, setIsTyping] = useState(false)
   const currentUserId = JSON.parse(localStorage.getItem('userData'))?._id
 
   // Fetch messages when selectedUser changes
@@ -175,11 +180,23 @@ const ChatContainer = ({ selectedUser, setSelectedUser, messages, setMessages, s
     <div className='h-full overflow-y-scroll overflow-x-hidden relative'>
       {/* Header */}
       <div className='glass flex items-center gap-3 py-4 px-4 mx-3 mt-3 mb-2 rounded-xl'>
-        <img
-          src={selectedUser.profilePic || assets.avatar_icon}
-          alt={selectedUser.fullName}
-          className='w-10 h-10 rounded-full object-cover border-2 border-violet-500/50'
-        />
+        {selectedUser?.avatar && selectedUser.avatar.name ? (
+          <ProfessionalAvatar
+            avatarData={selectedUser.avatar}
+            size={40}
+            fallbackName={selectedUser.fullName}
+          />
+        ) : selectedUser?.profilePic ? (
+          <img
+            src={selectedUser.profilePic}
+            alt={selectedUser.fullName}
+            className='w-10 h-10 rounded-full object-cover border-2 border-violet-500/50'
+          />
+        ) : (
+          <div className='w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-lg font-semibold text-white border-2 border-violet-500/50'>
+            {selectedUser?.fullName?.charAt(0).toUpperCase()}
+          </div>
+        )}
 
         <p className='flex-1 text-lg text-white font-medium flex items-center gap-2'>
           {selectedUser.fullName}
@@ -289,17 +306,47 @@ const ChatContainer = ({ selectedUser, setSelectedUser, messages, setMessages, s
                   </div>
 
                   {/* Avatar + Time */}
-                  <div className="text-center text-xs opacity-70">
-                    <img
-                      src={
-                        isSentByMe
-                          ? JSON.parse(localStorage.getItem('userData'))?.profilePic || assets.avatar_icon
-                          : selectedUser.profilePic || assets.avatar_icon
-                      }
-                      alt="avatar"
-                      className='w-7 rounded-full object-cover'
-                    />
-                    <p className='text-gray-500'>{formatMessageTime(msg.createdAt)}</p>
+                  <div className="text-center text-xs">
+                    {isSentByMe ? (
+                      JSON.parse(localStorage.getItem('userData'))?.avatar?.name ? (
+                        <ProfessionalAvatar
+                          avatarData={JSON.parse(localStorage.getItem('userData')).avatar}
+                          size={28}
+                          fallbackName={JSON.parse(localStorage.getItem('userData')).fullName}
+                          className='mx-auto'
+                        />
+                      ) : JSON.parse(localStorage.getItem('userData'))?.profilePic ? (
+                        <img
+                          src={JSON.parse(localStorage.getItem('userData')).profilePic}
+                          alt="avatar"
+                          className='w-7 h-7 rounded-full object-cover border border-white/20 mx-auto'
+                        />
+                      ) : (
+                        <div className='w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-xs font-semibold text-white border border-white/20 mx-auto'>
+                          {JSON.parse(localStorage.getItem('userData'))?.fullName?.charAt(0).toUpperCase()}
+                        </div>
+                      )
+                    ) : (
+                      selectedUser?.avatar?.name ? (
+                        <ProfessionalAvatar
+                          avatarData={selectedUser.avatar}
+                          size={28}
+                          fallbackName={selectedUser.fullName}
+                          className='mx-auto'
+                        />
+                      ) : selectedUser?.profilePic ? (
+                        <img
+                          src={selectedUser.profilePic}
+                          alt="avatar"
+                          className='w-7 h-7 rounded-full object-cover border border-white/20 mx-auto'
+                        />
+                      ) : (
+                        <div className='w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-xs font-semibold text-white border border-white/20 mx-auto'>
+                          {selectedUser?.fullName?.charAt(0).toUpperCase()}
+                        </div>
+                      )
+                    )}
+                    <p className='message-time'>{formatMessageTime(msg.createdAt)}</p>
                   </div>
                 </div>
               )
@@ -309,6 +356,9 @@ const ChatContainer = ({ selectedUser, setSelectedUser, messages, setMessages, s
             <p>No messages yet. Start the conversation!</p>
           </div>
         )}
+
+        {/* Typing Indicator */}
+        {isTyping && <TypingIndicator userName={selectedUser?.fullName} />}
 
         <div ref={scrollEnd}></div>
       </div>
@@ -333,7 +383,7 @@ const ChatContainer = ({ selectedUser, setSelectedUser, messages, setMessages, s
 
       {/* Bottom input area */}
       <div className='absolute bottom-0 left-0 right-0 flex items-center gap-3 p-4 mx-3 mb-3'>
-        <div className='flex-1 flex items-center glass px-4 rounded-full hover-glow'>
+        <div className='flex-1 flex items-center glass px-4 rounded-full hover-glow relative'>
           <input
             type="text"
             placeholder='Send a message'
@@ -347,6 +397,30 @@ const ChatContainer = ({ selectedUser, setSelectedUser, messages, setMessages, s
             disabled={sending}
             className='flex-1 text-sm py-3 border-none outline-none text-white placeholder-slate-400 bg-transparent'
           />
+
+          {/* Emoji Picker */}
+          <button
+            type="button"
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            className='w-8 h-8 flex items-center justify-center hover:bg-white/10 rounded-full transition-all mr-2'
+          >
+            <span className='text-xl'>😀</span>
+          </button>
+
+          {showEmojiPicker && (
+            <div className='emoji-picker-wrapper'>
+              <EmojiPicker
+                onEmojiClick={(emojiObject) => {
+                  setText(prev => prev + emojiObject.emoji)
+                  setShowEmojiPicker(false)
+                }}
+                theme='dark'
+                height={400}
+                width={320}
+              />
+            </div>
+          )}
+
           <input
             type="file"
             id="image"
@@ -359,13 +433,33 @@ const ChatContainer = ({ selectedUser, setSelectedUser, messages, setMessages, s
           </label>
         </div>
 
+        {/* Professional Send Button */}
         <button
           onClick={handleSendMessage}
-          disabled={sending}
-          className={`modern-button w-10 h-10 rounded-full flex items-center justify-center p-0 ${sending ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
+          disabled={sending || (!text.trim() && !image)}
+          className={`
+            relative w-12 h-12 rounded-full flex items-center justify-center
+            bg-gradient-to-r from-violet-600 to-purple-600 
+            hover:from-violet-500 hover:to-purple-500
+            shadow-lg shadow-violet-500/50
+            hover:shadow-xl hover:shadow-violet-500/60
+            transform hover:scale-105
+            transition-all duration-300
+            disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
+            ${sending ? 'animate-pulse' : ''}
+          `}
         >
-          <img src={assets.send_button} alt="send" className='w-5' />
+          {sending ? (
+            <div className='w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin'></div>
+          ) : (
+            <svg
+              className='w-5 h-5 text-white transform translate-x-0.5'
+              fill='currentColor'
+              viewBox='0 0 24 24'
+            >
+              <path d='M2.01 21L23 12 2.01 3 2 10l15 2-15 2z' />
+            </svg>
+          )}
         </button>
       </div>
 

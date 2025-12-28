@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import assets from '../assets/assets'
 import { logoutUser, deleteAccount } from '../lib/utilis'
 import toast from 'react-hot-toast'
+import ProfessionalAvatar from './ProfessionalAvatar'
 
 const SideBar = ({ selectedUser, setSelectedUser, users, onlineUsers, unseenMessages }) => {
     const navigate = useNavigate();
@@ -85,7 +86,16 @@ const SideBar = ({ selectedUser, setSelectedUser, users, onlineUsers, unseenMess
                         <div className="relative py-2">
                             {/* Profile Avatar/Icon */}
                             <div onClick={() => setShowDropdown(!showDropdown)}>
-                                {currentUser?.profilePic ? (
+                                {currentUser?.avatar && currentUser.avatar.name ? (
+                                    <div className='cursor-pointer'>
+                                        <ProfessionalAvatar
+                                            avatarData={currentUser.avatar}
+                                            size={36}
+                                            fallbackName={currentUser.fullName}
+                                            className='hover-scale'
+                                        />
+                                    </div>
+                                ) : currentUser?.profilePic ? (
                                     <img
                                         src={currentUser.profilePic}
                                         alt="Profile"
@@ -175,11 +185,25 @@ const SideBar = ({ selectedUser, setSelectedUser, users, onlineUsers, unseenMess
                                     `}
                                 >
                                     <div className='relative'>
-                                        <img
-                                            src={user?.profilePic || assets.avatar_icon}
-                                            alt={`${user.fullName}'s profile`}
-                                            className='w-12 h-12 rounded-full object-cover'
-                                        />
+                                        {user?.avatar && user.avatar.name ? (
+                                            <div>
+                                                <ProfessionalAvatar
+                                                    avatarData={user.avatar}
+                                                    size={48}
+                                                    fallbackName={user.fullName}
+                                                />
+                                            </div>
+                                        ) : user?.profilePic ? (
+                                            <img
+                                                src={user.profilePic}
+                                                alt={`${user.fullName}'s profile`}
+                                                className='w-12 h-12 rounded-full object-cover border-2 border-white/20'
+                                            />
+                                        ) : (
+                                            <div className='w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-xl font-semibold text-white border-2 border-white/20'>
+                                                {user.fullName.charAt(0).toUpperCase()}
+                                            </div>
+                                        )}
                                         {/* Online indicator */}
                                         {isOnline && (
                                             <div className='absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full pulse-dot border-2 border-gray-900' />

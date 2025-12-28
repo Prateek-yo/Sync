@@ -5,7 +5,8 @@ const userSchema = new mongoose.Schema({
   fullName: { type: String, required: true },
   password: { type: String, required: true, minlength: 6 },
   profilePic: { type: String, default: "" },
-  bio: { type: String, default: "" }
+  bio: { type: String, default: "" },
+  avatar: { type: mongoose.Schema.Types.Mixed, default: "" } // Can be string (emoji) or object (boring-avatars)
 }, { timestamps: true });
 
 const User = mongoose.model("User", userSchema);

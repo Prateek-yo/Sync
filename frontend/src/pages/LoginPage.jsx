@@ -1,12 +1,14 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useContext } from 'react'
 import assets from '../assets/assets'
 import toast from 'react-hot-toast'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import { AuthContext } from '../../context/AuthContext'
 
 const LoginPage = () => {
 
   const navigate = useNavigate()
+  const { authUser, isAuthLoading, setToken, checkAuth } = useContext(AuthContext)
   const [currState, setCurrState] = useState("Sign up")
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
@@ -14,6 +16,13 @@ const LoginPage = () => {
   const [bio, setBio] = useState("")
   const [isDataSubmitted, setIsDataSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // If user is already authenticated, redirect to chat
+  useEffect(() => {
+    if (!isAuthLoading && authUser) {
+      navigate('/chat', { replace: true });
+    }
+  }, [authUser, isAuthLoading, navigate]);
 
   const onSubmitHandler = async (event) => {
     event.preventDefault();
@@ -37,15 +46,20 @@ const LoginPage = () => {
 
       if (data.success) {
         toast.success(data.message);
+        // Store token and user data
         localStorage.setItem('token', data.token);
         localStorage.setItem('userData', JSON.stringify(data.userData));
-        navigate('/');
+        // Set axios header immediately
+        axios.defaults.headers.common['token'] = data.token;
+        // Manually trigger auth check
+        await checkAuth();
+        // Navigation will happen automatically via useEffect when authUser is set
       } else {
         toast.error(data.message || 'Something went wrong');
       }
     } catch (error) {
       console.error('Error:', error);
-      toast.error('Failed to connect to server');
+      toast.error(error.response?.data?.message || 'Failed to connect to server');
     } finally {
       setLoading(false);
     }
@@ -59,11 +73,11 @@ const LoginPage = () => {
           <img
             src={assets.logo_big}
             alt="Logo"
-            className='w-[min(40vw,300px)] drop-shadow-2xl'
+            className='w-[min(40vw,300px)] drop-shadow-2xl hover-scale'
           />
-          <h1 className='text-4xl font-bold text-center'>Welcome to Chat App</h1>
-          <p className='text-slate-300 text-center max-w-md'>
-            Connect with friends and family through seamless, real-time messaging
+          <h1 className='text-5xl font-bold text-center text-gradient'>Welcome Back</h1>
+          <p className='text-slate-300 text-center max-w-md text-lg'>
+            Connect with friends and family through seamless, real-time messaging with our modern platform
           </p>
         </div>
 

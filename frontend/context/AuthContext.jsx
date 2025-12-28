@@ -75,17 +75,52 @@ export const AuthProvider = ({ children }) => {
   const [authUser, setAuthUser] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [socket, setSocket] = useState(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true); // Start as true
 
   // Check authentication
   const checkAuth = async () => {
+    console.log('[AuthContext] checkAuth called')
     try {
+      // Check if token exists
+      const token = localStorage.getItem("token");
+      console.log('[AuthContext] Token exists:', !!token)
+
+      if (!token) {
+        console.log('[AuthContext] No token found, setting authUser to null')
+        setAuthUser(null);
+        setIsAuthLoading(false);
+        return;
+      }
+
+      console.log('[AuthContext] Calling /api/user/check')
       const { data } = await axios.get("/api/user/check");
+      console.log('[AuthContext] API response:', data)
+
       if (data.success) {
+        console.log('[AuthContext] Auth successful, user:', data.user.fullName)
         setAuthUser(data.user);
         connectSocket(data.user);
+      } else {
+        // Clear auth state if check fails
+        console.log('[AuthContext] Auth check failed, clearing auth state')
+        setAuthUser(null);
+        setToken(null);
+        localStorage.removeItem("token");
+        localStorage.removeItem("userData");
+        delete axios.defaults.headers.common["token"];
       }
     } catch (error) {
-      toast.error(error.message);
+      console.error("[AuthContext] Auth check error:", error.message);
+      // Handle token expiry or unauthorized access - AGGRESSIVELY CLEAR
+      console.log('[AuthContext] Clearing all auth data due to error')
+      setAuthUser(null);
+      setToken(null);
+      localStorage.removeItem("token");
+      localStorage.removeItem("userData");
+      delete axios.defaults.headers.common["token"];
+    } finally {
+      console.log('[AuthContext] Setting isAuthLoading to false')
+      setIsAuthLoading(false);
     }
   };
 
@@ -107,19 +142,39 @@ export const AuthProvider = ({ children }) => {
     });
   };
 
-  //  Token setup & auth check
+  //  Token setup & auth check - Run once on mount
   useEffect(() => {
-    if (token) {
-      axios.defaults.headers.common["token"] = token;
+    const storedToken = localStorage.getItem("token");
+    if (storedToken) {
+      axios.defaults.headers.common["token"] = storedToken;
+      setToken(storedToken);
+      checkAuth();
+    } else {
+      setIsAuthLoading(false);
     }
-    checkAuth();
-  }, []);
+  }, []); // Only run on mount
+
+  // Logout function
+  const logout = () => {
+    setAuthUser(null);
+    setToken(null);
+    setSocket(null);
+    localStorage.removeItem("token");
+    localStorage.removeItem("userData");
+    delete axios.defaults.headers.common["token"];
+  };
 
   const value = {
     axios,
     authUser,
+    setAuthUser,
+    token,
+    setToken,
     onlineUsers,
     socket,
+    isAuthLoading,
+    logout,
+    checkAuth, // Expose checkAuth for manual re-check
   };
 
   return (

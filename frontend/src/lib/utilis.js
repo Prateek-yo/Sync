@@ -69,6 +69,13 @@ export const deleteAccount = async () => {
     });
 };
 
+export const updateAvatar = async (avatar) => {
+    return apiCall('/api/user/avatar', {
+        method: 'PUT',
+        body: JSON.stringify({ avatar })
+    });
+};
+
 // Message API functions
 export const getUsersForSidebar = async () => {
     return apiCall('/api/messages/users', {
@@ -103,9 +110,29 @@ export const deleteMessage = async (messageId) => {
 };
 
 export function formatMessageTime(date) {
-    return new Date(date).toLocaleTimeString("en-US", {
-        hour: "2-digit",
+    const messageDate = new Date(date);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const messageDay = new Date(messageDate.getFullYear(), messageDate.getMonth(), messageDate.getDate());
+
+    const timeString = messageDate.toLocaleTimeString("en-US", {
+        hour: "numeric",
         minute: "2-digit",
-        hour12: false,
+        hour12: true,
     });
+
+    if (messageDay.getTime() === today.getTime()) {
+        return timeString;
+    } else if (messageDay.getTime() === yesterday.getTime()) {
+        return `Yesterday ${timeString}`;
+    } else {
+        return messageDate.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: messageDate.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+        }) + ' ' + timeString;
+    }
 }
