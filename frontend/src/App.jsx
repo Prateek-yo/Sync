@@ -43,7 +43,7 @@ const RootRedirect = () => {
 
 const App = () => {
   return (
-    <div className="bg-[url(./src/assets/bgImage.svg)] bg-contain bg-no-repeat min-h-screen">
+    <div className="gradient-main min-h-screen">
       <Toaster />
       <Routes>
         {/* Root route - redirect based on auth */}
