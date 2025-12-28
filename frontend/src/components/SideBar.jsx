@@ -202,7 +202,7 @@ const SideBar = ({ selectedUser, setSelectedUser, conversations, setConversation
 
                                         <div className='flex-1 min-w-0'>
                                             <div className="flex justify-between items-baseline mb-0.5">
-                                                <h3 className={`font-semibold truncate text-base ${isSelected ? 'text-white' : 'text-gray-200 group-hover:text-white'}`}>
+                                                <h3 className="font-bold truncate text-base text-white drop-shadow-md">
                                                     {user.fullName}
                                                 </h3>
                                                 {!searchQuery && user.lastMessageTime && (

@@ -43,7 +43,7 @@ const RootRedirect = () => {
 
 const App = () => {
   return (
-    <div className="gradient-main min-h-screen">
+    <div className="min-h-screen">
       <Toaster />
       <Routes>
         {/* Root route - redirect based on auth */}
