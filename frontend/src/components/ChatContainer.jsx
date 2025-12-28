@@ -6,7 +6,7 @@ import EmojiPicker from 'emoji-picker-react'
 import TypingIndicator from './TypingIndicator'
 import ProfessionalAvatar from './ProfessionalAvatar'
 
-const ChatContainer = ({ selectedUser, setSelectedUser, messages, setMessages, socket }) => {
+const ChatContainer = ({ selectedUser, setSelectedUser, messages, setMessages, socket, setConversations }) => {
   const scrollEnd = useRef(null)
   const [text, setText] = useState('')
   const [image, setImage] = useState(null)
@@ -103,27 +103,75 @@ const ChatContainer = ({ selectedUser, setSelectedUser, messages, setMessages, s
     }
   }
 
-  // Handle send message
+  // Handle send message with Optimistic UI
   const handleSendMessage = async () => {
     if (!text.trim() && !image) return
     if (!selectedUser?._id) return
 
-    setSending(true)
+    const tempId = Date.now().toString();
+
+    // 1. Create optimistic message
+    const optimisticMessage = {
+      _id: tempId,
+      senderId: currentUserId,
+      receiverId: selectedUser._id,
+      text: text,
+      image: imagePreview, // Use preview for instant display
+      createdAt: new Date().toISOString(),
+      isOptimistic: true // Flag to identify it
+    };
+
+    // 2. Clear inputs immediately
+    const sentText = text;
+    const sentImage = image;
+    setText('');
+    setImage(null);
+    setImagePreview(null);
+    setShowEmojiPicker(false);
+
+    // 3. Update messages locally for instant feedback
+    setMessages(prev => [...prev, optimisticMessage]);
+
+    // 4. Update sidebar conversation immediately
+    if (setConversations) {
+      setConversations(prev => {
+        return prev.map(convo => {
+          if (convo._id === selectedUser._id) {
+            return {
+              ...convo,
+              lastMessage: optimisticMessage,
+              lastMessageTime: optimisticMessage.createdAt
+            }
+          }
+          return convo;
+        }).sort((a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime));
+      });
+    }
+
     try {
-      const response = await sendMessage(selectedUser._id, text, image)
+      const response = await sendMessage(selectedUser._id, sentText, sentImage);
       if (response.success) {
-        setMessages((prev) => [...prev, response.newMessage])
-        setText('')
-        setImage(null)
-        setImagePreview(null)
+        // Replace optimistic message with real one from server
+        setMessages(prev => prev.map(msg => msg._id === tempId ? response.newMessage : msg));
+
+        // Update sidebar with real message ID (important for later clicks)
+        if (setConversations) {
+          setConversations(prev => prev.map(convo =>
+            convo._id === selectedUser._id ? { ...convo, lastMessage: response.newMessage } : convo
+          ));
+        }
       } else {
-        toast.error(response.message || 'Failed to send message')
+        // Remove optimistic message if failed
+        setMessages(prev => prev.filter(msg => msg._id !== tempId));
+        toast.error(response.message || 'Failed to send message');
+        // Restore text for user to try again
+        setText(sentText);
       }
     } catch (error) {
-      console.error('Error sending message:', error)
-      toast.error('Failed to send message')
-    } finally {
-      setSending(false)
+      console.error('Error sending message:', error);
+      setMessages(prev => prev.filter(msg => msg._id !== tempId));
+      toast.error('Failed to send message');
+      setText(sentText);
     }
   }
 
@@ -279,7 +327,7 @@ const ChatContainer = ({ selectedUser, setSelectedUser, messages, setMessages, s
                     )}
 
                     {/* Options menu - positioned absolutely, shown on hover */}
-                    {isSentByMe && !editingId && hoveredMessageId === msg._id && (
+                    {isSentByMe && !editingId && hoveredMessageId === msg._id && !msg.isOptimistic && (
                       <div className='absolute -top-8 right-0 flex gap-1 glass rounded-lg p-1.5 shadow-lg z-10 fade-in'>
                         <button
                           onClick={() => {
@@ -346,7 +394,9 @@ const ChatContainer = ({ selectedUser, setSelectedUser, messages, setMessages, s
                         </div>
                       )
                     )}
-                    <p className='message-time'>{formatMessageTime(msg.createdAt)}</p>
+                    <p className='message-time'>
+                      {msg.isOptimistic ? 'Sending...' : formatMessageTime(msg.createdAt)}
+                    </p>
                   </div>
                 </div>
               )
@@ -390,11 +440,10 @@ const ChatContainer = ({ selectedUser, setSelectedUser, messages, setMessages, s
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyPress={(e) => {
-              if (e.key === 'Enter' && !sending) {
+              if (e.key === 'Enter') {
                 handleSendMessage()
               }
             }}
-            disabled={sending}
             className='flex-1 text-sm py-3 border-none outline-none text-white placeholder-slate-400 bg-transparent'
           />
 
@@ -436,7 +485,7 @@ const ChatContainer = ({ selectedUser, setSelectedUser, messages, setMessages, s
         {/* Professional Send Button */}
         <button
           onClick={handleSendMessage}
-          disabled={sending || (!text.trim() && !image)}
+          disabled={!text.trim() && !image}
           className={`
             relative w-12 h-12 rounded-full flex items-center justify-center
             bg-gradient-to-r from-violet-600 to-purple-600 
@@ -446,20 +495,15 @@ const ChatContainer = ({ selectedUser, setSelectedUser, messages, setMessages, s
             transform hover:scale-105
             transition-all duration-300
             disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
-            ${sending ? 'animate-pulse' : ''}
           `}
         >
-          {sending ? (
-            <div className='w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin'></div>
-          ) : (
-            <svg
-              className='w-5 h-5 text-white transform translate-x-0.5'
-              fill='currentColor'
-              viewBox='0 0 24 24'
-            >
-              <path d='M2.01 21L23 12 2.01 3 2 10l15 2-15 2z' />
-            </svg>
-          )}
+          <svg
+            className='w-5 h-5 text-white transform translate-x-0.5'
+            fill='currentColor'
+            viewBox='0 0 24 24'
+          >
+            <path d='M2.01 21L23 12 2.01 3 2 10l15 2-15 2z' />
+          </svg>
         </button>
       </div>
 

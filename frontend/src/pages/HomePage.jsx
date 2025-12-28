@@ -33,6 +33,46 @@ const HomePage = () => {
     fetchConversations()
   }, [])
 
+  // Listen for socket events to update conversations list in real-time
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewMessage = (newMessage) => {
+      const currentUserId = JSON.parse(localStorage.getItem('userData'))?._id;
+      const otherId = newMessage.senderId === currentUserId ? newMessage.receiverId : newMessage.senderId;
+
+      setConversations(prev => {
+        return prev.map(convo => {
+          if (convo._id === otherId) {
+            return {
+              ...convo,
+              lastMessage: newMessage,
+              lastMessageTime: newMessage.createdAt,
+              unseenCount: (selectedUser?._id === otherId || newMessage.senderId === currentUserId)
+                ? convo.unseenCount
+                : convo.unseenCount + 1
+            }
+          }
+          return convo;
+        }).sort((a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime));
+      });
+    };
+
+    socket.on('newMessage', handleNewMessage);
+    return () => socket.off('newMessage', handleNewMessage);
+  }, [socket, selectedUser]);
+
+  // When selectedUser changes, clear their unseen count locally
+  useEffect(() => {
+    if (selectedUser?._id) {
+      setConversations(prev =>
+        prev.map(convo =>
+          convo._id === selectedUser._id ? { ...convo, unseenCount: 0 } : convo
+        )
+      );
+    }
+  }, [selectedUser]);
+
   return (
     <div className='w-full h-screen glass-strong overflow-hidden 
                     grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr] lg:grid-cols-[1fr_2.3fr_1fr]'>
@@ -50,6 +90,7 @@ const HomePage = () => {
         messages={messages}
         setMessages={setMessages}
         socket={socket}
+        setConversations={setConversations}
       />
 
       <RightSidebar
