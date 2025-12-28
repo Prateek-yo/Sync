@@ -3,36 +3,34 @@ import ChatContainer from '../components/ChatContainer'
 import RightSidebar from '../components/RightSidebar'
 import SideBar from '../components/SideBar.jsx'
 import { AuthContext } from '../../context/AuthContext'
-import { getUsersForSidebar } from '../lib/utilis'
+import { getConversations } from '../lib/utilis'
 import toast from 'react-hot-toast'
 
 
 const HomePage = () => {
   const [selectedUser, setSelectedUser] = useState(null)
-  const [users, setUsers] = useState([])
-  const [unseenMessages, setUnseenMessages] = useState({})
+  const [conversations, setConversations] = useState([])
   const [messages, setMessages] = useState([])
 
   const { socket, onlineUsers } = useContext(AuthContext)
 
-  // Fetch users on mount
+  // Fetch conversations on mount
   useEffect(() => {
-    const fetchUsers = async () => {
+    const fetchConversations = async () => {
       try {
-        const response = await getUsersForSidebar()
+        const response = await getConversations()
         if (response.success) {
-          setUsers(response.users)
-          setUnseenMessages(response.unseenMessages || {})
+          setConversations(response.conversations || [])
         } else {
-          toast.error(response.message || 'Failed to fetch users')
+          toast.error(response.message || 'Failed to fetch conversations')
         }
       } catch (error) {
-        console.error('Error fetching users:', error)
-        toast.error('Failed to load users')
+        console.error('Error fetching conversations:', error)
+        toast.error('Failed to load conversations')
       }
     }
 
-    fetchUsers()
+    fetchConversations()
   }, [])
 
   return (
@@ -41,9 +39,9 @@ const HomePage = () => {
       <SideBar
         selectedUser={selectedUser}
         setSelectedUser={setSelectedUser}
-        users={users}
+        conversations={conversations}
+        setConversations={setConversations}
         onlineUsers={onlineUsers}
-        unseenMessages={unseenMessages}
       />
 
       <ChatContainer

@@ -77,8 +77,14 @@ export const updateAvatar = async (avatar) => {
 };
 
 // Message API functions
-export const getUsersForSidebar = async () => {
-    return apiCall('/api/messages/users', {
+export const getConversations = async () => {
+    return apiCall('/api/messages/conversations', {
+        method: 'GET'
+    });
+};
+
+export const searchUsers = async (query) => {
+    return apiCall(`/api/messages/search?q=${encodeURIComponent(query)}`, {
         method: 'GET'
     });
 };

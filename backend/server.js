@@ -41,7 +41,14 @@ io.on("connection", (socket) => {
 
 //middleware
 app.use(express.json({ limit: "4mb" }));
-app.use(cors())
+
+// Robust CORS configuration
+app.use(cors({
+    origin: true, // Allow all origins (for now)
+    credentials: true, // Allow cookies/headers
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "token", "Authorization"]
+}));
 //routes setup
 app.use("/api/status", (req, res) => {
     res.send("serever is live")

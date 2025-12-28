@@ -1,36 +1,90 @@
 import Message from "../models/Message.js";
 import User from "../models/User.js";
+import Conversation from "../models/Conversation.js";
 import cloudinary from "../lib/cloudinary.js";
 import { io, userSocketMap } from "../server.js";
 
-// See all users except the logged in user
-export const getUsersForSidebar = async (req, res) => {
+// Get conversations for sidebar (only users with existing chats)
+export const getConversations = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    const filteredUsers = await User.find({
-      _id: { $ne: userId }
-    }).select("-password");
+    // Find all conversations where user is a participant
+    const conversations = await Conversation.find({
+      participants: userId
+    })
+      .populate({
+        path: 'participants',
+        select: '-password',
+        match: { _id: { $ne: userId } }
+      })
+      .populate('lastMessage')
+      .sort({ lastMessageTime: -1 });
 
-    // Count number of messages not seen
-    const unseenMessages = {};
+    // Format response with user details and unseen message count
+    const conversationsData = await Promise.all(
+      conversations.map(async (conversation) => {
+        const otherUser = conversation.participants.find(p => p && p._id.toString() !== userId.toString());
 
-    const promises = filteredUsers.map(async (user) => {
-      const messages = await Message.find({
-        senderId: user._id,
-        receiverId: userId,
-        seen: false
-      });
+        if (!otherUser) return null;
 
-      if (messages.length > 0) {
-        unseenMessages[user._id] = messages.length;
-      }
-    });
-    await Promise.all(promises);
-    res.json({ success: true, users: filteredUsers, unseenMessages })
+        // Count unseen messages from this user
+        const unseenCount = await Message.countDocuments({
+          senderId: otherUser._id,
+          receiverId: userId,
+          seen: false
+        });
+
+        return {
+          _id: otherUser._id,
+          fullName: otherUser.fullName,
+          email: otherUser.email,
+          profilePic: otherUser.profilePic,
+          avatar: otherUser.avatar,
+          bio: otherUser.bio,
+          conversationId: conversation._id,
+          lastMessage: conversation.lastMessage,
+          lastMessageTime: conversation.lastMessageTime,
+          unseenCount
+        };
+      })
+    );
+
+    // Filter out null values
+    const validConversations = conversationsData.filter(c => c !== null);
+
+    res.json({ success: true, conversations: validConversations });
   } catch (error) {
     console.log(error.message);
-    res.json({ success: false, message: error.message })
+    res.json({ success: false, message: error.message });
+  }
+};
+
+// Search users for starting new conversations
+export const searchUsers = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { q } = req.query;
+
+    if (!q || q.trim().length === 0) {
+      return res.json({ success: true, users: [] });
+    }
+
+    // Search users by name or email (exclude current user)
+    const users = await User.find({
+      _id: { $ne: userId },
+      $or: [
+        { fullName: { $regex: q, $options: 'i' } },
+        { email: { $regex: q, $options: 'i' } }
+      ]
+    })
+      .select('-password')
+      .limit(15);
+
+    res.json({ success: true, users });
+  } catch (error) {
+    console.log(error.message);
+    res.json({ success: false, message: error.message });
   }
 };
 
@@ -74,8 +128,7 @@ export const markMessageAsSeen = async (req, res) => {
   }
 }
 
-//sen dmessagew to seletced user
-
+// Send message to selected user
 export const sendMessage = async (req, res) => {
   try {
     const { text, image } = req.body;
@@ -87,6 +140,7 @@ export const sendMessage = async (req, res) => {
       const uploadResponse = await cloudinary.uploader.upload(image)
       imageUrl = uploadResponse.secure_url
     }
+
     const newMessage = await Message.create({
       senderId,
       receiverId,
@@ -94,14 +148,30 @@ export const sendMessage = async (req, res) => {
       image: imageUrl
     })
 
-    //emit the new message tpo the reciver's pocket
-    const receiverSocketId = userSocketMap[receiverId];
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit("newMessage", newMessage)
+    // Create or update conversation
+    let conversation = await Conversation.findConversationBetween(senderId, receiverId);
+
+    if (!conversation) {
+      // Create new conversation if doesn't exist
+      conversation = await Conversation.create({
+        participants: [senderId, receiverId],
+        lastMessage: newMessage._id,
+        lastMessageTime: new Date()
+      });
+    } else {
+      // Update existing conversation
+      conversation.lastMessage = newMessage._id;
+      conversation.lastMessageTime = new Date();
+      await conversation.save();
     }
 
-
-
+    // Emit the new message to the receiver's socket
+    const receiverSocketId = userSocketMap[receiverId];
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("newMessage", newMessage);
+      // Also emit conversation update
+      io.to(receiverSocketId).emit("conversationUpdated", conversation);
+    }
 
     res.json({ success: true, newMessage });
 
