@@ -2,7 +2,7 @@
   "name": "chating",
   "version": "1.0.0",
   "scripts": {
-    "install:backend": "cd backend && npm install",
+    "postinstall": "cd backend && npm install",
     "start": "cd backend && npm start",
     "build": "cd backend && npm install"
   }
