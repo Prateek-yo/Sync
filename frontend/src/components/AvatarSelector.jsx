@@ -62,7 +62,7 @@ const AvatarSelector = ({ onSelect, currentAvatar }) => {
                             className={`
                                 glass-strong p-4 rounded-xl transition-all duration-300 hover-lift
                                 ${selectedAvatar.variant === variant
-                                    ? 'border-2 border-violet-500 shadow-lg shadow-violet-500/50'
+                                    ? 'border-2 border-blue-500 shadow-lg shadow-blue-500/50'
                                     : 'border border-white/10'
                                 }
                             `}
@@ -92,7 +92,7 @@ const AvatarSelector = ({ onSelect, currentAvatar }) => {
                             className={`
                                 glass-strong p-3 rounded-xl transition-all duration-300 hover-lift
                                 ${JSON.stringify(selectedAvatar.colors) === JSON.stringify(palette.colors)
-                                    ? 'border-2 border-violet-500'
+                                    ? 'border-2 border-blue-500'
                                     : 'border border-white/10'
                                 }
                             `}
@@ -126,7 +126,7 @@ const AvatarSelector = ({ onSelect, currentAvatar }) => {
                                 className={`
                                     glass p-3 rounded-xl transition-all duration-300 hover-scale
                                     ${selectedAvatar.name === name
-                                        ? 'border-2 border-violet-500'
+                                        ? 'border-2 border-blue-500'
                                         : 'border border-white/10'
                                     }
                                 `}

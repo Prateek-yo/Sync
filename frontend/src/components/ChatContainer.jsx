@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, useCallback } from 'react'
 import assets from '../assets/assets'
 import { formatMessageTime, getMessages, sendMessage, editMessage, deleteMessage } from '../lib/utilis'
 import toast from 'react-hot-toast'
@@ -19,6 +19,9 @@ const ChatContainer = ({ selectedUser, setSelectedUser, messages, setMessages, s
   const [hoveredMessageId, setHoveredMessageId] = useState(null)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
+  const [showScrollButton, setShowScrollButton] = useState(false)
+  const messagesContainerRef = useRef(null)
+  const lastSendTime = useRef(0)
   const currentUserId = JSON.parse(localStorage.getItem('userData'))?._id
 
   // Fetch messages when selectedUser changes
@@ -103,12 +106,19 @@ const ChatContainer = ({ selectedUser, setSelectedUser, messages, setMessages, s
     }
   }
 
-  // Handle send message with Optimistic UI
-  const handleSendMessage = async () => {
+  // Debounced send message with Optimistic UI
+  const handleSendMessage = useCallback(async () => {
     if (!text.trim() && !image) return
     if (!selectedUser?._id) return
 
-    const tempId = Date.now().toString();
+    // Debounce: Prevent rapid sends (max 1 per 100ms)
+    const now = Date.now()
+    if (now - lastSendTime.current < 100) {
+      return
+    }
+    lastSendTime.current = now
+
+    const tempId = `temp_${Date.now()}_${Math.random()}`;
 
     // 1. Create optimistic message
     const optimisticMessage = {
@@ -173,7 +183,7 @@ const ChatContainer = ({ selectedUser, setSelectedUser, messages, setMessages, s
       toast.error('Failed to send message');
       setText(sentText);
     }
-  }
+  }, [text, image, imagePreview, selectedUser, currentUserId, setMessages, setConversations])
 
   // Handle edit message
   const handleEditMessage = async (messageId) => {
@@ -238,10 +248,10 @@ const ChatContainer = ({ selectedUser, setSelectedUser, messages, setMessages, s
           <img
             src={selectedUser.profilePic}
             alt={selectedUser.fullName}
-            className='w-10 h-10 rounded-full object-cover border-2 border-violet-500/50'
+            className='w-10 h-10 rounded-full object-cover border-2 border-blue-500/50'
           />
         ) : (
-          <div className='w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-lg font-semibold text-white border-2 border-violet-500/50'>
+          <div className='w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-lg font-semibold text-white border-2 border-blue-500/50'>
             {selectedUser?.fullName?.charAt(0).toUpperCase()}
           </div>
         )}
@@ -319,13 +329,12 @@ const ChatContainer = ({ selectedUser, setSelectedUser, messages, setMessages, s
                         )}
                       </div>
                     ) : (
-                      <div className='fade-in'>
+                      <div className='message-animate'>
                         <p className={`md:text-sm break-all ${isSentByMe ? 'message-sent max-w-[250px]' : 'message-received max-w-[250px]'}`}>
                           {msg.text}
                         </p>
                       </div>
                     )}
-
                     {/* Options menu - positioned absolutely, shown on hover */}
                     {isSentByMe && !editingId && hoveredMessageId === msg._id && !msg.isOptimistic && (
                       <div className='absolute -top-8 right-0 flex gap-1 glass rounded-lg p-1.5 shadow-lg z-10 fade-in'>
@@ -370,7 +379,7 @@ const ChatContainer = ({ selectedUser, setSelectedUser, messages, setMessages, s
                           className='w-7 h-7 rounded-full object-cover border border-white/20 mx-auto'
                         />
                       ) : (
-                        <div className='w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-xs font-semibold text-white border border-white/20 mx-auto'>
+                        <div className='w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-xs font-semibold text-white border border-white/20 mx-auto'>
                           {JSON.parse(localStorage.getItem('userData'))?.fullName?.charAt(0).toUpperCase()}
                         </div>
                       )
@@ -389,7 +398,7 @@ const ChatContainer = ({ selectedUser, setSelectedUser, messages, setMessages, s
                           className='w-7 h-7 rounded-full object-cover border border-white/20 mx-auto'
                         />
                       ) : (
-                        <div className='w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-xs font-semibold text-white border border-white/20 mx-auto'>
+                        <div className='w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-xs font-semibold text-white border border-white/20 mx-auto'>
                           {selectedUser?.fullName?.charAt(0).toUpperCase()}
                         </div>
                       )
@@ -440,7 +449,8 @@ const ChatContainer = ({ selectedUser, setSelectedUser, messages, setMessages, s
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyPress={(e) => {
-              if (e.key === 'Enter') {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
                 handleSendMessage()
               }
             }}
@@ -488,10 +498,10 @@ const ChatContainer = ({ selectedUser, setSelectedUser, messages, setMessages, s
           disabled={!text.trim() && !image}
           className={`
             relative w-12 h-12 rounded-full flex items-center justify-center
-            bg-gradient-to-r from-violet-600 to-purple-600 
-            hover:from-violet-500 hover:to-purple-500
-            shadow-lg shadow-violet-500/50
-            hover:shadow-xl hover:shadow-violet-500/60
+            bg-gradient-to-r from-blue-600 to-blue-700 
+            hover:from-blue-500 hover:to-purple-500
+            shadow-lg shadow-blue-500/50
+            hover:shadow-xl hover:shadow-blue-500/60
             transform hover:scale-105
             transition-all duration-300
             disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100

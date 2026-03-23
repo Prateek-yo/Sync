@@ -117,10 +117,10 @@ const ProfilePage = () => {
                             <img
                                 src={selectedImg}
                                 alt="Profile"
-                                className='w-32 h-32 rounded-full object-cover border-4 border-violet-500/50 shadow-2xl'
+                                className='w-32 h-32 rounded-full object-cover border-4 border-blue-500/50 shadow-2xl'
                             />
                         ) : (
-                            <div className='w-32 h-32 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-4xl font-bold text-white shadow-2xl border-4 border-white/20'>
+                            <div className='w-32 h-32 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-4xl font-bold text-white shadow-2xl border-4 border-white/20'>
                                 {name.charAt(0).toUpperCase() || '?'}
                             </div>
                         )}

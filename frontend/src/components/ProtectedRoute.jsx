@@ -10,7 +10,7 @@ const ProtectedRoute = ({ children }) => {
         return (
             <div className='gradient-main min-h-screen flex items-center justify-center'>
                 <div className='glass-strong p-8 rounded-3xl flex flex-col items-center gap-4'>
-                    <div className='w-12 h-12 border-4 border-violet-500 border-t-transparent rounded-full animate-spin'></div>
+                    <div className='w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin'></div>
                     <p className='text-white text-lg'>Loading...</p>
                 </div>
             </div>

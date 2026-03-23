@@ -43,10 +43,10 @@ const RightSidebar = ({ selectedUser, messages }) => {
           <img
             src={selectedUser.profilePic}
             alt={selectedUser.fullName}
-            className='w-20 h-20 rounded-full object-cover border-4 border-violet-500/30'
+            className='w-20 h-20 rounded-full object-cover border-4 border-blue-500/30'
           />
         ) : (
-          <div className='w-20 h-20 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-3xl font-semibold text-white border-4 border-violet-500/30'>
+          <div className='w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-3xl font-semibold text-white border-4 border-blue-500/30'>
             {selectedUser?.fullName?.charAt(0).toUpperCase()}
           </div>
         )}

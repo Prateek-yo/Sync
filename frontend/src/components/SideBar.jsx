@@ -115,7 +115,7 @@ const SideBar = ({ selectedUser, setSelectedUser, conversations, setConversation
                                         className='hover-scale ring-2 ring-white/20'
                                     />
                                 ) : (
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 flex items-center justify-center text-white font-bold ring-2 ring-white/20">
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold ring-2 ring-white/20">
                                         {currentUser?.fullName?.[0]}
                                     </div>
                                 )}
@@ -157,7 +157,7 @@ const SideBar = ({ selectedUser, setSelectedUser, conversations, setConversation
                         <input
                             type="text"
                             placeholder='Search users...'
-                            className='w-full p-3 pl-12 bg-white/5 border border-white/10 rounded-xl focus:border-violet-500 focus:bg-white/10 outline-none transition-all placeholder:text-gray-500 text-white'
+                            className='w-full p-3 pl-12 bg-white/5 border border-white/10 rounded-xl focus:border-blue-500 focus:bg-white/10 outline-none transition-all placeholder:text-gray-500 text-white'
                             onChange={(e) => setSearchQuery(e.target.value)}
                             value={searchQuery}
                         />
@@ -168,7 +168,7 @@ const SideBar = ({ selectedUser, setSelectedUser, conversations, setConversation
                 <div className='flex-1 overflow-y-auto space-y-2 custom-scrollbar'>
                     {isSearching ? (
                         <div className="flex justify-center p-4">
-                            <div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin"></div>
+                            <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                         </div>
                     ) : displayList?.length > 0 ? (
                         <>
@@ -183,20 +183,20 @@ const SideBar = ({ selectedUser, setSelectedUser, conversations, setConversation
                                     <div
                                         key={user._id || index}
                                         onClick={() => handleSelectUser(user)}
-                                        className={`p-3 flex items-center gap-4 rounded-xl cursor-pointer transition-all hover:bg-white/5 group
-                                            ${isSelected ? 'bg-gradient-to-r from-violet-600/20 to-purple-600/20 border border-violet-500/30' : 'border border-transparent'}
+                                        className={`p-3 flex items-center gap-4 rounded-xl cursor-pointer transition-all duration-300 hover:bg-white/5 group
+                                            ${isSelected ? 'bg-gradient-to-r from-blue-600/20 to-blue-700/20 border border-blue-500/30 scale-[1.02] shadow-lg shadow-blue-500/10' : 'border border-transparent hover:border-white/10'}
                                         `}
                                     >
                                         <div className="relative flex-shrink-0">
                                             {user.avatar?.name ? (
-                                                <ProfessionalAvatar avatarData={user.avatar} size={48} />
+                                                <ProfessionalAvatar avatarData={user.avatar} size={48} className="transition-transform duration-200 group-hover:scale-110" />
                                             ) : (
-                                                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-lg font-bold">
+                                                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-lg font-bold transition-transform duration-200 group-hover:scale-110">
                                                     {user.fullName?.[0]}
                                                 </div>
                                             )}
                                             {isOnline(user._id) && (
-                                                <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-[#13131f] shadow-sm"></div>
+                                                <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-[#13131f] shadow-sm animate-pulse"></div>
                                             )}
                                         </div>
 
@@ -224,7 +224,7 @@ const SideBar = ({ selectedUser, setSelectedUser, conversations, setConversation
                                         </div>
 
                                         {!searchQuery && user.unseenCount > 0 && (
-                                            <div className="w-5 h-5 bg-violet-600 rounded-full flex items-center justify-center">
+                                            <div className="min-w-5 h-5 px-1.5 bg-gradient-to-r from-blue-600 to-blue-700 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/50 scale-in">
                                                 <span className="text-[10px] font-bold text-white">{user.unseenCount}</span>
                                             </div>
                                         )}

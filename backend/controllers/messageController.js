@@ -165,15 +165,18 @@ export const sendMessage = async (req, res) => {
       await conversation.save();
     }
 
-    // Emit the new message to the receiver's socket
-    const receiverSocketId = userSocketMap[receiverId];
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit("newMessage", newMessage);
-      // Also emit conversation update
-      io.to(receiverSocketId).emit("conversationUpdated", conversation);
-    }
-
+    // PERFORMANCE OPTIMIZATION: Return response immediately
     res.json({ success: true, newMessage });
+
+    // Emit socket events asynchronously (non-blocking)
+    setImmediate(() => {
+      const receiverSocketId = userSocketMap[receiverId];
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit("newMessage", newMessage);
+        // Also emit conversation update
+        io.to(receiverSocketId).emit("conversationUpdated", conversation);
+      }
+    });
 
   } catch (error) {
     console.log(error.message);

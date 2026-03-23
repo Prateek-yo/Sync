@@ -75,7 +75,7 @@ const HomePage = () => {
 
   return (
     <div className='w-full h-screen glass-strong overflow-hidden 
-                    grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr] lg:grid-cols-[1fr_2.3fr_1fr]'>
+                    grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr] lg:grid-cols-[1fr_2.3fr_1fr] fade-in'>
       <SideBar
         selectedUser={selectedUser}
         setSelectedUser={setSelectedUser}
