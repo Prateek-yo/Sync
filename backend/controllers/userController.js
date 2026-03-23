@@ -32,8 +32,8 @@ export const signup = async (req, res) => {
         const token = generateToken(newUser._id)
         res.json({ success: true, userData: newUser, token, message: "Account created successfully" })
     } catch (error) {
-        console.log(error.message)
-        return res.json({ success: false, message: "Error occurred" });
+        console.error("[Signup Error]", error.message, error.stack)
+        return res.json({ success: false, message: error.message || "Signup failed. Please try again." });
     }
 };
 
@@ -52,6 +52,11 @@ export const login = async (req, res) => {
             return res.json({ success: false, message: "Invalid credentials" })
         }
 
+        // Safety check: ensure user has a password set
+        if (!userData.password) {
+            return res.json({ success: false, message: "Password not set for this account. Please use another login method or reset your password." })
+        }
+
         const isPasswordCorrect = await bcrypt.compare(password, userData.password);
         if (!isPasswordCorrect) {
             return res.json({ success: false, message: "Invalid credentials" })
@@ -60,8 +65,8 @@ export const login = async (req, res) => {
         const token = generateToken(userData._id)
         res.json({ success: true, userData, token, message: "Login successful" })
     } catch (error) {
-        console.log(error.message)
-        res.json({ success: false, message: "Error occurred" })
+        console.error("[Login Error]", error.message, error.stack)
+        res.json({ success: false, message: error.message || "Login failed. Please try again." })
     }
 }
 //controllers authenticated

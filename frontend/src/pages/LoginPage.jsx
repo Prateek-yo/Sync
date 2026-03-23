@@ -2,13 +2,12 @@ import React, { useState, useEffect, useContext } from 'react'
 import assets from '../assets/assets'
 import toast from 'react-hot-toast'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
 import { AuthContext } from '../../context/AuthContext'
 
 const LoginPage = () => {
 
   const navigate = useNavigate()
-  const { authUser, isAuthLoading, setToken, checkAuth } = useContext(AuthContext)
+  const { axios, authUser, isAuthLoading, setToken, checkAuth } = useContext(AuthContext)
   const [currState, setCurrState] = useState("Sign up")
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
@@ -49,6 +48,8 @@ const LoginPage = () => {
         // Store token and user data
         localStorage.setItem('token', data.token);
         localStorage.setItem('userData', JSON.stringify(data.userData));
+        // Update AuthContext token state
+        setToken(data.token);
         // Set axios header immediately
         axios.defaults.headers.common['token'] = data.token;
         // Manually trigger auth check
@@ -159,7 +160,7 @@ const LoginPage = () => {
             </button>
 
             <div className='flex items-center gap-2 text-sm text-slate-300'>
-              <input type="checkbox" className='w-4 h-4 accent-violet-500' />
+              <input type="checkbox" className='w-4 h-4 accent-blue-500' />
               <p>Agree to the terms of use & privacy policy</p>
             </div>
 
